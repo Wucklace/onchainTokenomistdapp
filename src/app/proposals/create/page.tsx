@@ -2,12 +2,13 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui';
 import { useWallet } from '@/hooks/useWallet';
 import { ProposalForm } from '@/components/proposals/create';
 
-export default function CreateProposalPage() {
+function CreateProposalContent() {
   const { isConnected } = useWallet();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -46,7 +47,6 @@ export default function CreateProposalPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header */}
       <div>
         <p className="text-xs font-mono text-white/30 uppercase tracking-widest mb-1">
           Proposals
@@ -59,11 +59,18 @@ export default function CreateProposalPage() {
         </p>
       </div>
 
-      {/* Proposal Form */}
       <ProposalForm
         vaultId={vaultId}
         onSuccess={handleSuccess}
       />
     </div>
+  );
+}
+
+export default function CreateProposalPage() {
+  return (
+    <Suspense fallback={null}>
+      <CreateProposalContent />
+    </Suspense>
   );
 }

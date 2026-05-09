@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { useTxStore } from '@/store';
 import { useState, useEffect } from 'react';
 import { Card, Button, Spinner } from '@/components/ui';
@@ -9,7 +10,7 @@ import { useSearchParams, useRouter } from 'next/navigation';
 import { useInvolvedProposals, useProposalTiers, useWallet } from '@/hooks';
 import { ProposalIdInput, ProposalSummary, TierMintPanel } from '@/components/proposals';
 
-export default function MintPassesPage() {
+function MintPassesContent() {
   const { isConnected, address } = useWallet();
   const searchParams = useSearchParams();
   const router = useRouter();
@@ -52,9 +53,7 @@ export default function MintPassesPage() {
     refetchTiers();
   };
 
-  // Only show tiers not yet fully minted for this proposal
   const activeTiers = tiers.filter((t) => t.mintedCount < t.supplyCount);
-
   const canMint = proposal?.status === 'ready' && activeTiers.length > 0;
 
   if (!isConnected) {
@@ -71,7 +70,6 @@ export default function MintPassesPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <p className="text-xs font-mono text-white/30 uppercase tracking-widest mb-1">
@@ -91,17 +89,14 @@ export default function MintPassesPage() {
         )}
       </div>
 
-      {/* Proposal loader */}
       {!proposalId && <ProposalIdInput onLoad={handleLoad} />}
 
-      {/* Loading */}
       {proposalId && (isLoading || tiersLoading) && (
         <Card variant="default" fullWidth className="flex justify-center p-8">
           <Spinner size="sm" />
         </Card>
       )}
 
-      {/* Not found */}
       {proposalId && !isLoading && !proposal && (
         <Card variant="default" fullWidth>
           <p className="text-xs font-mono text-white/30 text-center py-8">
@@ -110,12 +105,10 @@ export default function MintPassesPage() {
         </Card>
       )}
 
-      {/* Proposal found */}
       {proposalId && !isLoading && !tiersLoading && proposal && (
         <>
           <ProposalSummary proposal={proposal} proposalId={proposalId} />
 
-          {/* Not ready */}
           {!canMint && (
             <Card variant="default" fullWidth>
               <p className="text-xs font-mono text-white/30 text-center py-6">
@@ -130,7 +123,6 @@ export default function MintPassesPage() {
             </Card>
           )}
 
-          {/* Ready — active tier panels only */}
           {canMint && (
             <div className="flex flex-col gap-4">
               <p className="text-xs font-mono uppercase tracking-widest text-white/40">
@@ -155,5 +147,13 @@ export default function MintPassesPage() {
         </>
       )}
     </div>
+  );
+}
+
+export default function MintPassesPage() {
+  return (
+    <Suspense fallback={null}>
+      <MintPassesContent />
+    </Suspense>
   );
 }

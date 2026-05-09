@@ -2,6 +2,7 @@
 
 export const dynamic = 'force-dynamic';
 
+import { Suspense } from 'react';
 import { useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui';
@@ -9,7 +10,7 @@ import { useWallet } from '@/hooks/useWallet';
 import { useCategoryTierDetails } from '@/hooks';
 import { VaultCategoryTierSelector, DirectMintPanel } from '@/components/passes';
 
-export default function PassesMintPage() {
+function PassesMintContent() {
   const { isConnected } = useWallet();
   const searchParams = useSearchParams();
 
@@ -55,7 +56,6 @@ export default function PassesMintPage() {
 
   return (
     <div className="flex flex-col gap-8">
-      {/* Header */}
       <div>
         <p className="text-xs font-mono text-white/30 uppercase tracking-widest mb-1">
           Passes
@@ -68,7 +68,6 @@ export default function PassesMintPage() {
         </p>
       </div>
 
-      {/* Category + Tier Selector */}
       <VaultCategoryTierSelector
         vaultId={vaultId}
         selectedCategory={selectedCategory}
@@ -77,7 +76,6 @@ export default function PassesMintPage() {
         onTierSelect={setSelectedTier}
       />
 
-      {/* Mint panel */}
       {selectedCategory && selectedTier && tierDetail && (
         <DirectMintPanel
           vaultId={vaultId}
@@ -88,5 +86,13 @@ export default function PassesMintPage() {
         />
       )}
     </div>
+  );
+}
+
+export default function PassesMintPage() {
+  return (
+    <Suspense fallback={null}>
+      <PassesMintContent />
+    </Suspense>
   );
 }
