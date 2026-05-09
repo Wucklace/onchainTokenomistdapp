@@ -165,7 +165,11 @@ Vault creation is handled through a multi-step wizard (`CreateVaultModal`) trigg
    Two token types are supported:
 
    - **ERC-20** — enter the token contract address. The dapp fetches token metadata on-chain to confirm the address is valid. A separate approval transaction is required before vault creation to allow the contract to pull the deposit.
-   - **Native Token** — one-click selection, no address or approval needed. The deposit is sent directly with the vault creation transaction. The `msg.value` sent to the contract covers both the registration fee and the full deposit: msg.value = registrationFee + depositAmount
+   - **Native Token** — one-click selection, no address or approval needed. The deposit is sent directly with the vault creation transaction. The `msg.value` sent to the contract covers both the registration fee and the full deposit:
+
+   ```
+   msg.value = registrationFee + depositAmount
+   ```
 
 2. **Categories & Tiers** — configure distribution groups (e.g. Team, Investors, Community) with custom tiers, per-pass allocations, and max supply caps.
 
@@ -198,12 +202,6 @@ App mount → PlatformProvider fetches registrationFee → usePlatformStore
 FeeUpdateExecuted event fires → refetch → usePlatformStore updated
 
 This means every component in the tree reads the same value from the same source with zero duplicate RPC calls.
-
----
-
-## Executor
-
-The executor is an AI agent address configured at vault creation. It is designed exclusively for autonomous, agent-driven distribution — composing recipient sets, generating Merkle proofs, submitting proposals, and triggering minting entirely on-chain. The executor does not use the frontend dapp. There is no executor interface in the UI.
 
 ---
 
