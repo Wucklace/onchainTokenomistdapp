@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useSearchParams, useRouter } from 'next/navigation';
 import { Card } from '@/components/ui';
 import { useWallet } from '@/hooks/useWallet';

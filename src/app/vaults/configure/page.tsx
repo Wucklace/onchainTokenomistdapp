@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useWallet } from '@/hooks';
 import { Button, Card } from '@/components/ui';
 import { useCreateModal } from '@/store/useCreateModal';

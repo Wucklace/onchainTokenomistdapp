@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { useAccount, useBlockNumber } from 'wagmi';
 import { useMemo, useState } from 'react';

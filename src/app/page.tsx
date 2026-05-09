@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import Link from 'next/link';
 import { Notification } from '@/types';
 import { ConnectButton } from '@/components/wallet';

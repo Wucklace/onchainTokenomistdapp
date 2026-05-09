@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useTxStore } from '@/store';
 import { useState, useEffect } from 'react';
 import { Card, Button, Spinner } from '@/components/ui';

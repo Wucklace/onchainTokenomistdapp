@@ -86,7 +86,7 @@ export function Modal({
         )}
 
         {/* Content — scrollable */}
-        <div className="overflow-y-auto overscroll-contain p-5 scrollbar-thin scrollbar-track-white/5 scrollbar-thumb-white/20 hover:scrollbar-thumb-white/40">
+        <div className="overflow-y-auto overscroll-contain p-5">
           {children}
         </div>
       </div>

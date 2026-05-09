@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useVaultSummariesByCreator } from '@/hooks';
 import { useWallet } from '@/hooks';
 import { Card } from '@/components/ui/Card';

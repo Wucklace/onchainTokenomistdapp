@@ -1,5 +1,7 @@
 'use client';
 
+export const dynamic = 'force-dynamic';
+
 import { useBlockNumber } from 'wagmi'
 import { useState } from 'react';
 import { type ProposalWithStatus } from '@/types';
