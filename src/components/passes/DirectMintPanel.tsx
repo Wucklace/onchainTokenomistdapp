@@ -85,13 +85,7 @@ export function DirectMintPanel({
 
     setProgress(null);
     refetch();
-    setDone(true);
-  };
-
-  const handleReset = () => {
     setRaw('');
-    setInputError(null);
-    setDone(false);
     reset();
   };
 
@@ -183,9 +177,6 @@ export function DirectMintPanel({
           <p className="text-sm font-mono text-white/70">
             {validCount} passes minted successfully
           </p>
-          <Button variant="ghost" size="sm" onClick={handleReset}>
-            Mint More
-          </Button>
         </div>
       )}
     </Card>

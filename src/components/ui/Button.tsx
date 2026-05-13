@@ -59,7 +59,7 @@ export const Button = forwardRef<HTMLButtonElement, ButtonProps>(
         disabled={disabled || isLoading}
         className={`
           relative inline-flex items-center justify-center gap-2
-          font-mono uppercase rounded-lg cursor-pointer
+          font-mono uppercase rounded-full cursor-pointer
           disabled:opacity-40 disabled:cursor-not-allowed disabled:active:scale-100
           ${variantStyles[variant]}
           ${sizeStyles[size]}

@@ -76,7 +76,7 @@ function PassesMintContent() {
         onTierSelect={setSelectedTier}
       />
 
-      {selectedCategory && selectedTier && tierDetail && (
+      {selectedCategory && selectedTier && tierDetail  && tierDetail.remainingSupply > 0n && (
         <DirectMintPanel
           vaultId={vaultId}
           category={selectedCategory}

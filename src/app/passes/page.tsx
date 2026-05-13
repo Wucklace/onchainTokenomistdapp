@@ -9,7 +9,8 @@ import { type UserPassInfo } from '@/types';
 import { formatAmount, formatBlockToDate, formatBytes32 } from '@/utils/format';
 import { Card, Badge, Button, Spinner } from '@/components/ui';
 import { useUserPasses, useTokensByOwner, useClaim } from '@/hooks';
-import { TransactionModal } from '@/components/transaction/TransactionModal';
+import { TransactionModal } from '@/components/transaction';
+import { useTxStore } from '@/store/useTxStore';
 
 // ─── Pass Card ────────────────────────────────────────────────────────────────
 
@@ -149,7 +150,12 @@ export default function PassesPage() {
     if (claimableTokenIds.length === 0) return;
     setIsModalOpen(true);
     const success = await claim(claimableTokenIds);
-    if (success) refetch();
+    if (success) {
+      refetch();
+    } else if (!useTxStore.getState().isError) {
+      // false + no error = user rejected
+      setIsModalOpen(false);
+    }
   };
 
   if (!isConnected) {

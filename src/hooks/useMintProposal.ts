@@ -1,5 +1,6 @@
 import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from '@wagmi/core';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/constants';
 import { type ProposeMintInput } from '@/types';
 import { useTxStore } from '@/store';
@@ -7,17 +8,17 @@ import { wagmiConfig } from '@/lib';
 
 export function useMintProposal() {
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
-  
-  const { 
-    setHash, 
-    setIsPending, 
-    setIsConfirming, 
-    setIsConfirmed, 
-    setIsError, 
-    setError, 
+
+  const {
+    setHash,
+    setIsPending,
+    setIsConfirming,
+    setIsConfirmed,
+    setIsError,
+    setError,
     reset,
     isConfirming,
-    isConfirmed 
+    isConfirmed,
   } = useTxStore();
 
   const proposeMint = async (input: ProposeMintInput): Promise<boolean> => {
@@ -26,14 +27,10 @@ export function useMintProposal() {
       setIsPending(true);
 
       const txHash = await writeContractAsync({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
+        address:      CONTRACT_ADDRESS,
+        abi:          CONTRACT_ABI,
         functionName: 'proposeMintCategory',
-        args: [
-          input.vaultId, 
-          input.category, 
-          input.tierBatches
-        ],
+        args:         [input.vaultId, input.category, input.tierBatches],
       });
 
       setHash(txHash);
@@ -46,18 +43,26 @@ export function useMintProposal() {
       setIsConfirmed(true);
       return true;
     } catch (err) {
-      setIsError(true);
-      setError(err as Error);
       setIsPending(false);
       setIsConfirming(false);
+
+      // User deliberately rejected — silent, don't set error state
+      if (err instanceof BaseError) {
+        const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
+        if (isRejected) return false;
+      }
+
+      // Any other error — set error state as before
+      setIsError(true);
+      setError(err as Error);
       return false;
     }
   };
 
-  return { 
-    proposeMint, 
+  return {
+    proposeMint,
     isPending: isWritePending,
     isConfirming,
-    isConfirmed
+    isConfirmed,
   };
 }

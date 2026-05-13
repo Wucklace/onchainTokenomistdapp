@@ -1,5 +1,6 @@
 import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from '@wagmi/core';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/constants';
 import { useTxStore } from '@/store';
 import { wagmiConfig } from '@/lib';
@@ -21,19 +22,19 @@ export function useMintPasses() {
 
   const mintPasses = async (
     proposalId: bigint,
-    tier: `0x${string}`,
+    tier:       `0x${string}`,
     recipients: `0x${string}`[],
-    proofs: `0x${string}`[][]
+    proofs:     `0x${string}`[][]
   ): Promise<boolean> => {
     try {
       reset();
       setIsPending(true);
 
       const txHash = await writeContractAsync({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
+        address:      CONTRACT_ADDRESS,
+        abi:          CONTRACT_ABI,
         functionName: 'mintPasses',
-        args: [proposalId, tier, recipients, proofs],
+        args:         [proposalId, tier, recipients, proofs],
       });
 
       setHash(txHash);
@@ -46,10 +47,18 @@ export function useMintPasses() {
       setIsConfirmed(true);
       return true;
     } catch (err) {
-      setIsError(true);
-      setError(err as Error);
       setIsPending(false);
       setIsConfirming(false);
+
+      // User deliberately rejected — silent, don't set error state
+      if (err instanceof BaseError) {
+        const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
+        if (isRejected) return false;
+      }
+
+      // Any other error — set error state as before
+      setIsError(true);
+      setError(err as Error);
       return false;
     }
   };

@@ -71,7 +71,10 @@ function NotificationCard({ item }: { item: Notification }) {
         n.type === 'proposal_rejected'
           ? `Vault #${n.vaultId.toString()} · Rejected by admin — create a new proposal`
           : '',
-      href: () => `/proposals/create`,
+      href: (n: Notification) =>
+        n.type === 'proposal_rejected'
+          ? `/proposals/create?vaultId=${n.vaultId.toString()}`
+          : '/proposals/create',
       cta: 'New Proposal',
     },
     proposal_expired: {
@@ -85,7 +88,10 @@ function NotificationCard({ item }: { item: Notification }) {
         n.type === 'proposal_expired'
           ? `Vault #${n.vaultId.toString()} · Deadline passed — create a new proposal`
           : '',
-      href: () => `/proposals/create`,
+      href: (n: Notification) =>
+        n.type === 'proposal_expired'
+          ? `/proposals/create?vaultId=${n.vaultId.toString()}`
+          : '/proposals/create',
       cta: 'New Proposal',
     },
     proposal_needed: {
@@ -96,7 +102,10 @@ function NotificationCard({ item }: { item: Notification }) {
           ? `Vault #${n.vaultId.toString()} needs a mint proposal`
           : '',
       sub: () => 'Create a proposal to begin the mint approval process',
-      href: () => `/proposals/create`,
+      href: (n: Notification) =>
+        n.type === 'proposal_needed'
+          ? `/proposals/create?vaultId=${n.vaultId.toString()}`
+          : '/proposals/create',
       cta: 'Create Proposal',
     },
     mint_ready: {
@@ -124,7 +133,10 @@ function NotificationCard({ item }: { item: Notification }) {
           ? `Vault #${n.vaultId.toString()} has passes to mint`
           : '',
       sub: () => 'Creator-mode vault — mint passes directly',
-      href: () => `/passes/mint`,
+      href: (n: Notification) =>
+        n.type === 'mint_direct'
+          ? `/passes/mint?vaultId=${n.vaultId.toString()}`
+          : '/passes/mint',
       cta: 'Mint Passes',
     },
     claimable: {

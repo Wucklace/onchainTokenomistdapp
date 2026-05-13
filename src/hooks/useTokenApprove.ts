@@ -1,31 +1,9 @@
 import { useWriteContract, useReadContract } from 'wagmi';
 import { waitForTransactionReceipt } from '@wagmi/core';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { useTxStore } from '@/store';
-import { CONTRACT_ADDRESS } from '@/constants';
+import { CONTRACT_ADDRESS, ERC20_ABI } from '@/constants';
 import { wagmiConfig } from '@/lib';
-
-const ERC20_ABI = [
-  {
-    inputs: [
-      { internalType: 'address', name: 'spender', type: 'address' },
-      { internalType: 'uint256', name: 'amount', type: 'uint256' },
-    ],
-    name: 'approve',
-    outputs: [{ internalType: 'bool', name: '', type: 'bool' }],
-    stateMutability: 'nonpayable',
-    type: 'function',
-  },
-  {
-    inputs: [
-      { internalType: 'address', name: 'owner', type: 'address' },
-      { internalType: 'address', name: 'spender', type: 'address' },
-    ],
-    name: 'allowance',
-    outputs: [{ internalType: 'uint256', name: '', type: 'uint256' }],
-    stateMutability: 'view',
-    type: 'function',
-  },
-] as const;
 
 interface UseTokenApproveOptions {
   tokenAddress: `0x${string}` | null | undefined;
@@ -83,15 +61,20 @@ export function useTokenApprove({ tokenAddress, owner, amount }: UseTokenApprove
       setIsConfirming(false);
       setIsConfirmed(true);
 
-      // Refetch allowance after approval so needsApproval updates
       await refetchAllowance();
 
       return true;
     } catch (err) {
-      setIsError(true);
-      setError(err as Error);
       setIsPending(false);
       setIsConfirming(false);
+
+      if (err instanceof BaseError) {
+        const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
+        if (isRejected) return false;
+      }
+
+      setIsError(true);
+      setError(err as Error);
       return false;
     }
   };

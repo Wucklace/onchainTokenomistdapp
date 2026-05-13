@@ -57,7 +57,6 @@ export function Step4ApprovalSetup() {
   const feeEth     = registrationFee ? formatEther(registrationFee) : '—';
   const depositAmt = step1.amount || '0';
 
-  // Total cost only meaningful for native — ERC-20 pays fee separately via approval
   const totalNativeCost = registrationFee && step1.amount
     ? formatEther(registrationFee + BigInt(Math.round(parseFloat(step1.amount) * 1e18)))
     : '—';
@@ -72,6 +71,13 @@ export function Step4ApprovalSetup() {
     ? `${Number(step1.amount).toLocaleString()} ${isNative ? 'native' : 'tokens'}`
     : '—';
 
+  const startDateDisplay = step1.startDate
+    ? new Date(step1.startDate).toLocaleString(undefined, {
+        dateStyle: 'medium',
+        timeStyle: 'short',
+      })
+    : '—';
+
   const modeDisplay =
     approvalMode === 'creator' ? 'Creator Mode' :
     approvalMode === 'admin'   ? 'Admin Mode'   : 'Team Mode';
@@ -79,12 +85,12 @@ export function Step4ApprovalSetup() {
   // ── Summary rows ───────────────────────────────────────────────────────────
 
   const summaryRows = [
-    { label: 'Token',       value: tokenDisplay },
-    { label: 'Amount',      value: amountDisplay },
-    { label: 'Start Date',  value: step1.startDate || '—' },
-    { label: 'Categories',  value: categories.length.toString() },
-    { label: 'Tiers',       value: totalTiers.toString() },
-    { label: 'Mode',        value: modeDisplay },
+    { label: 'Token',      value: tokenDisplay },
+    { label: 'Amount',     value: amountDisplay },
+    { label: 'Start Date', value: startDateDisplay },
+    { label: 'Categories', value: categories.length.toString() },
+    { label: 'Tiers',      value: totalTiers.toString() },
+    { label: 'Mode',       value: modeDisplay },
   ];
 
   // Cost rows shown separately — visually distinct from config summary
@@ -209,7 +215,6 @@ export function Step4ApprovalSetup() {
             </div>
           ))}
         </div>
-        {/* ERC-20 note */}
         {!isNative && (
           <p className="text-xs font-mono text-white/20 mt-3 border-t border-white/5 pt-3">
             Token deposit requires a separate approval transaction before vault creation.

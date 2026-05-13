@@ -152,7 +152,7 @@ Each hook maps directly to a contract function:
 | `useWallet` | Wallet connection state |
 | `useTokenApproval` | ERC-20 `approve` — called before vault creation for ERC-20 vaults only. Skipped entirely for native token vaults — no approval step exists for native deposits. |
 
-`getNextVaultId` is called directly inside the vault creation wizard after vault creation to resolve the new vault ID — no dedicated hook. `registrationFee` is read from `usePlatformStore` which is populated once on app mount by `PlatformProvider`.
+`registrationFee` is read from `usePlatformStore` which is populated once on app mount by `PlatformProvider`.
 
 ---
 

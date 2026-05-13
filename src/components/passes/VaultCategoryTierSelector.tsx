@@ -2,7 +2,44 @@
 
 import { Spinner } from '@/components/ui';
 import { formatBytes32 } from '@/utils/format';
-import { useVaultCategories, useCategoryTiers } from '@/hooks';
+import { useVaultCategories, useCategoryTierDetails } from '@/hooks';
+
+// ─── Category Item ────────────────────────────────────────────────────────────
+
+function CategoryItem({
+  vaultId,
+  cat,
+  isSelected,
+  onSelect,
+}: {
+  vaultId: bigint;
+  cat: `0x${string}`;
+  isSelected: boolean;
+  onSelect: (cat: `0x${string}`) => void;
+}) {
+  const { tiers, isLoading } = useCategoryTierDetails(vaultId, cat);
+
+  const fullyMinted =
+    !isLoading && tiers.length > 0 && tiers.every((t) => t.remainingSupply === 0n);
+
+  if (fullyMinted) return null;
+
+  return (
+    <button
+      onClick={() => onSelect(cat)}
+      disabled={isLoading}
+      className={`px-3 py-1.5 rounded-sm border text-xs font-mono uppercase transition-all duration-200 ${
+        isLoading ? 'opacity-40 cursor-wait' : ''
+      } ${
+        isSelected
+          ? 'border-[#fa7e09cb]/50 bg-[rgba(250,126,9,0.08)] text-[#fa7e09cb]'
+          : 'border-white/10 bg-white/3 text-white/50 hover:border-white/20'
+      }`}
+    >
+      {formatBytes32(cat)}
+    </button>
+  );
+}
 
 // ─── Category Selector ────────────────────────────────────────────────────────
 
@@ -30,17 +67,13 @@ function CategorySelector({
   return (
     <div className="flex flex-wrap gap-2">
       {categories.map((cat) => (
-        <button
+        <CategoryItem
           key={cat}
-          onClick={() => onSelect(cat)}
-          className={`px-3 py-1.5 rounded-sm border text-xs font-mono uppercase transition-all duration-200 ${
-            selectedCategory === cat
-              ? 'border-[#fa7e09cb]/50 bg-[rgba(250,126,9,0.08)] text-[#fa7e09cb]'
-              : 'border-white/10 bg-white/3 text-white/50 hover:border-white/20'
-          }`}
-        >
-          {formatBytes32(cat)}
-        </button>
+          vaultId={vaultId}
+          cat={cat}
+          isSelected={selectedCategory === cat}
+          onSelect={onSelect}
+        />
       ))}
     </div>
   );
@@ -59,21 +92,23 @@ function TierSelector({
   selectedTier: `0x${string}` | null;
   onSelect: (tier: `0x${string}`) => void;
 }) {
-  const { tiers, isLoading } = useCategoryTiers(vaultId, category);
+  const { tiers, isLoading } = useCategoryTierDetails(vaultId, category);
+
+  const availableTiers = tiers.filter((t) => t.remainingSupply > 0n);
 
   if (isLoading) return <Spinner size="sm" />;
 
-  if (tiers.length === 0) {
+  if (availableTiers.length === 0) {
     return (
       <p className="text-xs font-mono text-white/20 py-2">
-        No tiers found for this category.
+        All tiers fully minted.
       </p>
     );
   }
 
   return (
     <div className="flex flex-wrap gap-2">
-      {tiers.map((tier) => (
+      {availableTiers.map(({ tier }) => (
         <button
           key={tier}
           onClick={() => onSelect(tier)}
@@ -109,7 +144,6 @@ export function VaultCategoryTierSelector({
 }: VaultCategoryTierSelectorProps) {
   return (
     <div className="flex flex-col gap-6">
-      {/* Category */}
       <div className="flex flex-col gap-3">
         <p className="text-xs font-mono uppercase tracking-widest text-white/40">
           ① Select Category
@@ -121,7 +155,6 @@ export function VaultCategoryTierSelector({
         />
       </div>
 
-      {/* Tier */}
       {selectedCategory && (
         <div className="flex flex-col gap-3">
           <p className="text-xs font-mono uppercase tracking-widest text-white/40">

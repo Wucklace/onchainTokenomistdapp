@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { WagmiProvider } from 'wagmi';
+import { WagmiProvider, useBlockNumber } from 'wagmi';
 import { RainbowKitProvider, darkTheme } from '@rainbow-me/rainbowkit';
 import { QueryClientProvider, HydrationBoundary } from '@tanstack/react-query';
 import { useReadContract, useWatchContractEvent } from 'wagmi';
@@ -27,6 +27,7 @@ const theme = darkTheme({
 
 function PlatformProvider() {
   const setRegistrationFee = usePlatformStore((s) => s.setRegistrationFee);
+  const { data: currentBlock } = useBlockNumber();
 
   const { data: fee, refetch } = useReadContract({
     address: CONTRACT_ADDRESS,
@@ -45,6 +46,8 @@ function PlatformProvider() {
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
     eventName: 'FeeUpdateExecuted',
+    fromBlock: currentBlock,
+    enabled: currentBlock !== undefined,
     onLogs: () => refetch(),
   });
 

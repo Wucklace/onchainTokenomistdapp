@@ -1,15 +1,12 @@
 'use client';
 
 import { useCallback } from 'react';
-import { wagmiConfig } from '@/lib';
 import { useBlockNumber } from 'wagmi';
-import { readContract } from '@wagmi/core';
 import { useRouter } from 'next/navigation';
 import { isAddress, parseEther } from 'viem';
 import { Button, Modal } from '@/components/ui';
 import { TxStatus } from '@/components/transaction';
 import { useCreateVault, useTokenApprove, useWallet } from '@/hooks';
-import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/constants';
 import { stringToBytes32, daysToBlocks, dateToBlock } from '@/utils/format';
 import { useWizardStore, selectCreateVaultPayload, useTxStore, useCreateModal, usePlatformStore } from '@/store';
 import { type CreateVaultInput, type TierConfigInput, type VestingConfigInput } from '@/types';
@@ -38,7 +35,7 @@ function StepIndicator({
   isBusy: boolean;
 }) {
   return (
-    <div className="flex-shrink-0 flex items-center gap-2 px-5 py-3 border-b border-white/5">
+    <div className="flex-shrink-0 flex items-center gap-2 px-4 py-2 border-b border-white/5">
       {STEPS.map((label, i) => (
         <div key={label} className="flex items-center gap-2">
           <div
@@ -242,7 +239,10 @@ export function CreateVaultModal() {
           payload.tokenAddress as `0x${string}`,
           amount
         );
-        if (!approved) throw new Error('Token approval failed or was rejected');
+        if (!approved) {
+          if (!useTxStore.getState().isError) return;
+          throw new Error('Token approval failed');
+        }
       }
 
       // ── msg.value calculation ─────────────────────────────────────────────
@@ -251,24 +251,16 @@ export function CreateVaultModal() {
       const msgValue = payload.isNative
         ? (registrationFee ?? 0n) + amount
         : (registrationFee ?? 0n);
-
-      const created = await createVault(input, msgValue);
-      if (!created) throw new Error('Vault creation failed or was rejected');
-
-      const nextId = await readContract(wagmiConfig, {
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
-        functionName: 'getNextVaultId',
-      }) as bigint;
-
-      const newVaultId = nextId - 1n;
-
-      setTimeout(() => {
-        resetWizard();
-        resetTx();
-        close();
-        router.push(`/vaults/${newVaultId.toString()}`);
-      }, 2000);
+      const vaultId = await createVault(input, msgValue);
+      if (!vaultId) {
+        if (!useTxStore.getState().isError) return;
+        throw new Error('Vault creation failed');
+      }
+      
+      router.push(`/vaults/${vaultId.toString()}`);
+      await new Promise(resolve => setTimeout(resolve, 4000));
+      resetWizard();
+      resetTx();
 
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Transaction failed');
@@ -303,7 +295,7 @@ export function CreateVaultModal() {
       />
 
       {/* Scrollable content */}
-      <div className="p-5 flex flex-col gap-5">
+      <div className="p-4 flex flex-col gap-4">
         {stepContent[currentStep]}
 
         {isLastStep && (isPending || isConfirming || isConfirmed || isError) && (
@@ -325,7 +317,7 @@ export function CreateVaultModal() {
       </div>
 
       {/* Footer — pinned, never scrolls */}
-      <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-t border-white/5">
+      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2">
         {currentStep === 0 ? (
           <Button variant="ghost" onClick={handleClose} disabled={isBusy}>
             Cancel

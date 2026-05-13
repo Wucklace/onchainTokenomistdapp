@@ -1,5 +1,6 @@
 import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from '@wagmi/core';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/constants';
 import { useTxStore } from '@/store';
 import { wagmiConfig } from '@/lib';
@@ -8,6 +9,7 @@ import { useQueryClient } from '@tanstack/react-query';
 export function useApproveProposal() {
   const { writeContractAsync, isPending: isWritePending } = useWriteContract();
   const queryClient = useQueryClient();
+
   const {
     setHash,
     setIsPending,
@@ -17,7 +19,7 @@ export function useApproveProposal() {
     setError,
     reset,
     isConfirming,
-    isConfirmed
+    isConfirmed,
   } = useTxStore();
 
   const approveProposal = async (proposalId: bigint): Promise<boolean> => {
@@ -26,10 +28,10 @@ export function useApproveProposal() {
       setIsPending(true);
 
       const txHash = await writeContractAsync({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
+        address:      CONTRACT_ADDRESS,
+        abi:          CONTRACT_ABI,
         functionName: 'approveMintProposal',
-        args: [proposalId],
+        args:         [proposalId],
       });
 
       setHash(txHash);
@@ -46,10 +48,18 @@ export function useApproveProposal() {
 
       return true;
     } catch (err) {
-      setIsError(true);
-      setError(err as Error);
       setIsPending(false);
       setIsConfirming(false);
+
+      // User deliberately rejected — silent, don't set error state
+      if (err instanceof BaseError) {
+        const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
+        if (isRejected) return false;
+      }
+
+      // Any other error — set error state as before
+      setIsError(true);
+      setError(err as Error);
       return false;
     }
   };
@@ -58,6 +68,6 @@ export function useApproveProposal() {
     approveProposal,
     isPending: isWritePending,
     isConfirming,
-    isConfirmed
+    isConfirmed,
   };
 }

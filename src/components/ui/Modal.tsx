@@ -57,7 +57,7 @@ export function Modal({
       <div
         className={`
           relative w-full ${sizeStyles[size]}
-          bg-[#1A1A1A] border border-white/10
+          bg-[#1A1A1A]
           rounded-sm shadow-[0_24px_64px_rgba(0,0,0,0.8)]
           animate-in fade-in zoom-in-95 duration-200
           flex flex-col max-h-[90vh]
@@ -68,7 +68,7 @@ export function Modal({
       >
         {/* Header — fixed, never scrolls */}
         {title && (
-          <div className="flex-shrink-0 flex items-center justify-between px-5 py-4 border-b border-white/8">
+          <div className="flex-shrink-0 flex items-center justify-between px-4 py-4 border-b border-white/8">
             <h2
               id="modal-title"
               className="text-sm font-mono uppercase tracking-widest text-white/80"
@@ -86,7 +86,7 @@ export function Modal({
         )}
 
         {/* Content — scrollable */}
-        <div className="overflow-y-auto overscroll-contain p-5">
+        <div className="overflow-y-auto overscroll-contain ">
           {children}
         </div>
       </div>

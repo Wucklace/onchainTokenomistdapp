@@ -1,5 +1,7 @@
 'use client';
 
+import { useEffect } from 'react';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { Modal } from '@/components/ui/Modal';
 import { Button } from '@/components/ui/Button';
 import { TxStatus } from './TxStatus';
@@ -34,62 +36,74 @@ export function TransactionModal({
     }
   };
 
+  // Auto-close 2s after confirmed
+  useEffect(() => {
+    if (!isConfirmed) return;
+    const timer = setTimeout(() => handleClose(), 2000);
+    return () => clearTimeout(timer);
+  }, [isConfirmed]);
+
+  // Auto-close 500ms after user rejects — no need to read anything
+  useEffect(() => {
+    if (!isError) return;
+    const isRejected =
+      error instanceof BaseError &&
+      !!error.walk(e => e instanceof UserRejectedRequestError);
+    if (!isRejected) return;
+    const timer = setTimeout(() => handleClose(), 500);
+    return () => clearTimeout(timer);
+  }, [isError, error]);
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      title={title}
       closeOnOverlay={!isPending && !isConfirming}
     >
-      <div className="flex flex-col gap-5">
-        {/* Description */}
-        {description && !isConfirmed && !isError && (
-          <p className="text-sm font-mono text-white/50">{description}</p>
-        )}
+      <div className="flex flex-col bg-[#1A1A1A] border border-white/10 rounded-sm">
 
-        {/* Tx Status */}
-        <TxStatus
-          hash={hash}
-          isPending={isPending}
-          isConfirming={isConfirming}
-          isConfirmed={isConfirmed}
-          isError={isError}
-          error={error}
-        />
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-white/10">
+          <p className="text-sm font-mono text-white/70 uppercase tracking-wider">{title}</p>
+        </div>
 
-        {/* Success Message */}
-        {isConfirmed && (
-          <p className="text-sm font-mono text-emerald-400">
-            ✓ Transaction completed successfully
-          </p>
-        )}
-
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
-          {isConfirmed || isError ? (
-            <Button variant="ghost" onClick={handleClose}>
-              Close
-            </Button>
-          ) : (
-            <>
-              <Button
-                variant="ghost"
-                onClick={handleClose}
-                disabled={isPending || isConfirming}
-              >
-                Cancel
-              </Button>
-              {onConfirm && !isPending && !isConfirming && (
-                <Button
-                  variant="primary"
-                  onClick={onConfirm}
-                  isLoading={isLoading}
-                >
-                  {confirmLabel}
-                </Button>
-              )}
-            </>
+        {/* Body */}
+        <div className="flex flex-col gap-5 p-4">
+          {description && !isConfirmed && !isError && (
+            <p className="text-sm font-mono text-white/50">{description}</p>
           )}
+
+          <TxStatus
+            hash={hash}
+            isPending={isPending}
+            isConfirming={isConfirming}
+            isConfirmed={isConfirmed}
+            isError={isError}
+            error={error}
+          />
+
+          {isConfirmed && (
+            <p className="text-sm font-mono text-emerald-400">
+              ✓ Transaction completed successfully. Closing in 2s…
+            </p>
+          )}
+
+          <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
+            {isConfirmed || isError ? (
+              <Button variant="ghost" onClick={handleClose}>Close</Button>
+            ) : (
+              <>
+                <Button variant="ghost" onClick={handleClose} disabled={isPending || isConfirming}>
+                 Cancel
+                </Button>
+                {onConfirm && !isPending && !isConfirming && (
+                  <Button variant="primary" onClick={onConfirm} isLoading={isLoading}>
+                    {confirmLabel}
+                  </Button>
+               )}
+              </>
+            )}
+          </div>
         </div>
       </div>
     </Modal>

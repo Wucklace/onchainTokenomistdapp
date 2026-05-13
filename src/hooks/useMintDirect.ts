@@ -1,5 +1,6 @@
 import { useWriteContract } from 'wagmi';
 import { waitForTransactionReceipt } from '@wagmi/core';
+import { BaseError, UserRejectedRequestError } from 'viem';
 import { CONTRACT_ADDRESS, CONTRACT_ABI } from '@/constants';
 import { useTxStore } from '@/store';
 import { wagmiConfig } from '@/lib';
@@ -20,9 +21,9 @@ export function useMintDirect() {
   } = useTxStore();
 
   const mintDirect = async (
-    vaultId: bigint,
-    category: `0x${string}`,
-    tier: `0x${string}`,
+    vaultId:    bigint,
+    category:   `0x${string}`,
+    tier:       `0x${string}`,
     recipients: `0x${string}`[]
   ): Promise<boolean> => {
     try {
@@ -30,10 +31,10 @@ export function useMintDirect() {
       setIsPending(true);
 
       const txHash = await writeContractAsync({
-        address: CONTRACT_ADDRESS,
-        abi: CONTRACT_ABI,
+        address:      CONTRACT_ADDRESS,
+        abi:          CONTRACT_ABI,
         functionName: 'mintDirect',
-        args: [vaultId, category, tier, recipients],
+        args:         [vaultId, category, tier, recipients],
       });
 
       setHash(txHash);
@@ -46,10 +47,18 @@ export function useMintDirect() {
       setIsConfirmed(true);
       return true;
     } catch (err) {
-      setIsError(true);
-      setError(err as Error);
       setIsPending(false);
       setIsConfirming(false);
+
+      // User deliberately rejected — silent, don't set error state
+      if (err instanceof BaseError) {
+        const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
+        if (isRejected) return false;
+      }
+
+      // Any other error — set error state as before
+      setIsError(true);
+      setError(err as Error);
       return false;
     }
   };
