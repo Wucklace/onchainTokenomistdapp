@@ -1,5 +1,4 @@
 export { useWalletStore } from './useWalletStore';
-export { useVaultStore } from './useVaultStore';
 export { useProposalStore } from './useProposalStore';
 export { useTxStore } from './useTxStore';
 export { useWizardStore, selectCreateVaultPayload } from './useWizardStore'
