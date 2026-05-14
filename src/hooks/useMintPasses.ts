@@ -25,7 +25,7 @@ export function useMintPasses() {
     tier:       `0x${string}`,
     recipients: `0x${string}`[],
     proofs:     `0x${string}`[][]
-  ): Promise<boolean> => {
+  ): Promise<{ success: boolean; hash?: `0x${string}` }> => {
     try {
       reset();
       setIsPending(true);
@@ -45,21 +45,19 @@ export function useMintPasses() {
 
       setIsConfirming(false);
       setIsConfirmed(true);
-      return true;
+      return { success: true, hash: txHash };
     } catch (err) {
       setIsPending(false);
       setIsConfirming(false);
 
-      // User deliberately rejected — silent, don't set error state
       if (err instanceof BaseError) {
         const isRejected = err.walk(e => e instanceof UserRejectedRequestError);
-        if (isRejected) return false;
+        if (isRejected) return { success: false };
       }
 
-      // Any other error — set error state as before
       setIsError(true);
       setError(err as Error);
-      return false;
+      return { success: false };
     }
   };
 

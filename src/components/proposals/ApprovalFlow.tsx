@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { TxStatus } from '@/components/transaction/TxStatus';
+import { TransactionModal } from '@/components/transaction';
 import { TierVerification } from './TierVerification';
 import { AdminRow } from './AdminRow';
 import { useTxStore } from '@/store';
@@ -30,7 +30,7 @@ export function ApprovalFlow({ proposal, onActionComplete }: ApprovalFlowProps) 
   const { tiers, isLoading: tiersLoading } = useProposalTiers(proposal.proposalId);
   const { approveProposal } = useApproveProposal();
   const { rejectProposal } = useRejectProposal();
-  const { hash, isPending, isConfirming, isConfirmed, isError, error, reset } = useTxStore();
+  const { reset } = useTxStore();
 
   const [verifiedTiers, setVerifiedTiers] = useState<Record<string, boolean>>({});
 
@@ -46,6 +46,7 @@ export function ApprovalFlow({ proposal, onActionComplete }: ApprovalFlowProps) 
     tiers.length > 0 &&
     tiers.every((t) => verifiedTiers[t.tier] === true);
 
+  const { isPending, isConfirming, isConfirmed, isError } = useTxStore();
   const isBusy = isPending || isConfirming;
 
   const handleVerified = (tierKey: string, matched: boolean) => {
@@ -140,13 +141,10 @@ export function ApprovalFlow({ proposal, onActionComplete }: ApprovalFlowProps) 
         )}
       </div>
 
-      <TxStatus
-        hash={hash}
-        isPending={isPending}
-        isConfirming={isConfirming}
-        isConfirmed={isConfirmed}
-        isError={isError}
-        error={error}
+      <TransactionModal
+        isOpen={isPending || isConfirming || isConfirmed || isError}
+        onClose={() => reset()}
+        title="Confirm Action"
       />
     </Card>
   );

@@ -15,6 +15,7 @@ interface TransactionModalProps {
   onConfirm?: () => void;
   confirmLabel?: string;
   isLoading?: boolean;
+  isNavigating?: boolean;
 }
 
 export function TransactionModal({
@@ -25,25 +26,26 @@ export function TransactionModal({
   onConfirm,
   confirmLabel = 'Confirm',
   isLoading,
+  isNavigating = false, // ← new
 }: TransactionModalProps) {
   const { hash, isPending, isConfirming, isConfirmed, isError, error, reset } =
     useTxStore();
 
   const handleClose = () => {
-    if (!isPending && !isConfirming) {
+    if (!isPending && !isConfirming && !isNavigating) { // ← block during nav
       reset();
       onClose();
     }
   };
 
-  // Auto-close 2s after confirmed
+  // Auto-close 2s after confirmed — but not if navigating
   useEffect(() => {
-    if (!isConfirmed) return;
+    if (!isConfirmed || isNavigating) return; // ← block during nav
     const timer = setTimeout(() => handleClose(), 2000);
     return () => clearTimeout(timer);
-  }, [isConfirmed]);
+  }, [isConfirmed, isNavigating]);
 
-  // Auto-close 500ms after user rejects — no need to read anything
+  // Auto-close 500ms after user rejects
   useEffect(() => {
     if (!isError) return;
     const isRejected =
@@ -58,7 +60,7 @@ export function TransactionModal({
     <Modal
       isOpen={isOpen}
       onClose={handleClose}
-      closeOnOverlay={!isPending && !isConfirming}
+      closeOnOverlay={!isPending && !isConfirming && !isNavigating}
     >
       <div className="flex flex-col bg-[#1A1A1A] border border-white/10 rounded-sm">
 
@@ -82,25 +84,37 @@ export function TransactionModal({
             error={error}
           />
 
-          {isConfirmed && (
+          {/* Navigating state — replaces the "closing in 2s" message */}
+          {isConfirmed && isNavigating && (
+            <div className="flex items-center gap-3">
+              <div className="h-3.5 w-3.5 animate-spin rounded-full border border-[#15c6e6c0] border-t-transparent" />
+              <p className="text-sm font-mono text-[#15c6e6c0]">
+                Redirecting to vault...
+              </p>
+            </div>
+          )}
+
+          {isConfirmed && !isNavigating && (
             <p className="text-sm font-mono text-emerald-400">
-              ✓ Transaction completed successfully. Closing in 2s…
+              ✓ Transaction successful.
             </p>
           )}
 
           <div className="flex items-center justify-end gap-3 pt-2 border-t border-white/5">
             {isConfirmed || isError ? (
-              <Button variant="ghost" onClick={handleClose}>Close</Button>
+              <Button variant="ghost" onClick={handleClose} disabled={isNavigating}>
+                Close
+              </Button>
             ) : (
               <>
                 <Button variant="ghost" onClick={handleClose} disabled={isPending || isConfirming}>
-                 Cancel
+                  Cancel
                 </Button>
                 {onConfirm && !isPending && !isConfirming && (
                   <Button variant="primary" onClick={onConfirm} isLoading={isLoading}>
                     {confirmLabel}
                   </Button>
-               )}
+                )}
               </>
             )}
           </div>

@@ -3,7 +3,7 @@
 export const dynamic = 'force-dynamic';
 
 import { Suspense } from 'react';
-import { useSearchParams, useRouter } from 'next/navigation';
+import { useSearchParams } from 'next/navigation';
 import { Card } from '@/components/ui';
 import { useWallet } from '@/hooks/useWallet';
 import { ProposalForm } from '@/components/proposals/create';
@@ -11,15 +11,10 @@ import { ProposalForm } from '@/components/proposals/create';
 function CreateProposalContent() {
   const { isConnected } = useWallet();
   const searchParams = useSearchParams();
-  const router = useRouter();
 
   const vaultId = searchParams.get('vaultId')
     ? BigInt(searchParams.get('vaultId')!)
     : null;
-
-  const handleSuccess = () => {
-    router.push('/proposals');
-  };
 
   if (!isConnected) {
     return (
@@ -59,10 +54,7 @@ function CreateProposalContent() {
         </p>
       </div>
 
-      <ProposalForm
-        vaultId={vaultId}
-        onSuccess={handleSuccess}
-      />
+      <ProposalForm vaultId={vaultId} />
     </div>
   );
 }

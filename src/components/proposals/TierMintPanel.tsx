@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
+import toast from 'react-hot-toast';
 import { Card, Badge, Button, Spinner } from '@/components/ui';
 import { TxStatus } from '@/components/transaction/TxStatus';
 import { MerkleVerifier } from '@/components/merkle/MerkleVerifier';
 import { useTxStore } from '@/store';
 import { useMintPasses } from '@/hooks';
-import { formatBytes32 } from '@/utils/format';
+import { formatBytes32, formatTxHash, getTxExplorerUrl } from '@/utils/format';
 import { DEFAULT_MINT_BATCH_SIZE } from '@/types';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -80,6 +81,7 @@ export function TierMintPanel({
     setMintError(null);
 
     const totalBatches = Math.ceil(recipients.length / DEFAULT_MINT_BATCH_SIZE);
+    let lastHash: `0x${string}` | undefined;
 
     for (let b = 0; b < totalBatches; b++) {
       const start = b * DEFAULT_MINT_BATCH_SIZE;
@@ -90,20 +92,41 @@ export function TierMintPanel({
 
       setProgress(`Batch ${b + 1} / ${totalBatches} — ${batchRecipients.length} addresses`);
 
-      const success = await mintPasses(proposalId, tier, batchRecipients, batchProofs);
+      const result = await mintPasses(proposalId, tier, batchRecipients, batchProofs);
 
-      if (!success) {
+      if (!result.success) {
         setProgress(null);
         onBusyChange(false);
         return;
       }
+
+      lastHash = result.hash;
 
       // Refetch after each successful batch so mintedCount + remainingSupply update
       onBatchComplete();
     }
 
     setProgress(null);
+    reset();
     onBusyChange(false);
+
+    if (lastHash) {
+      toast.success(
+        <span>
+          All batches confirmed —{' '}
+          <a
+            href={getTxExplorerUrl(lastHash!)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="toast-confirm__link"
+            onClick={() => toast.dismiss()}
+          >
+            {formatTxHash(lastHash!)}
+          </a>
+        </span>,
+       { duration: 5000 }
+     );
+    }
     setDone(true);
   };
 

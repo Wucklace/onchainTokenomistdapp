@@ -20,7 +20,7 @@ function MintPassesContent() {
     queryId && !isNaN(parseInt(queryId)) ? BigInt(parseInt(queryId)) : null
   );
 
-  const { proposals, isLoading } = useInvolvedProposals(address);
+  const { proposals, isLoading, refetch: refetchProposals } = useInvolvedProposals(address);
   const proposal = proposalId != null
     ? proposals.find((p) => p.proposalId === proposalId) ?? null
     : null;
@@ -51,6 +51,7 @@ function MintPassesContent() {
 
   const handleBatchComplete = () => {
     refetchTiers();
+    refetchProposals();
   };
 
   const activeTiers = tiers.filter((t) => t.mintedCount < t.supplyCount);

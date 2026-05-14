@@ -1,5 +1,6 @@
 import type { Metadata } from 'next';
 import { Providers } from './providers';
+import { Toaster } from 'react-hot-toast';
 import { Header } from '@/components/layout/Header';
 import { Sidebar } from '@/components/layout/Sidebar';
 import { Footer } from '@/components/layout/Footer';
@@ -41,6 +42,19 @@ export default function RootLayout({
 
           {/* Bottom Tab Bar — visible on mobile, hidden lg+ */}
           <BottomTabBar />
+          <Toaster
+            position="top-center"
+            toastOptions={{
+              style: {
+                background: '#111',
+                color: '#fff',
+                fontFamily: 'monospace',
+                fontSize: '12px',
+                border: '1px solid rgba(255,255,255,0.08)',
+                borderRadius: '4px',
+              },
+            }}
+          />
         </Providers>
       </body>
     </html>

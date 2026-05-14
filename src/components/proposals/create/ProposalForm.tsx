@@ -12,10 +12,9 @@ import Link from 'next/link';
 
 interface ProposalFormProps {
   vaultId: bigint;
-  onSuccess: () => void;
 }
 
-export function ProposalForm({ vaultId, onSuccess }: ProposalFormProps) {
+export function ProposalForm({ vaultId }: ProposalFormProps) {
   const { proposeMint, isPending, isConfirming, isConfirmed } = useMintProposal();
   const { hash, isError, error, reset } = useTxStore();
 
@@ -108,8 +107,12 @@ export function ProposalForm({ vaultId, onSuccess }: ProposalFormProps) {
     const success = await proposeMint(input);
     if (success) {
       setDone(true);
-      onSuccess();
     }
+  };
+
+  const handleDismiss = () => {
+    setDone(false);
+    reset();
   };
 
   const allSelectedReady =
@@ -129,9 +132,14 @@ export function ProposalForm({ vaultId, onSuccess }: ProposalFormProps) {
               Head to the proposals page to track admin approvals.
             </p>
           </div>
-          <Link href="/proposals">
-            <Button variant="primary">View Proposals</Button>
-          </Link>
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" onClick={handleDismiss}>
+              Dismiss
+            </Button>
+            <Link href="/proposals">
+              <Button variant="primary">View Proposals</Button>
+            </Link>
+          </div>
         </div>
       </Card>
     );

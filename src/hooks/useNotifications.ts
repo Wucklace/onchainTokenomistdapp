@@ -33,6 +33,24 @@ export function useNotifications() {
 
     const items: Notification[] = [];
 
+    // ── Helpers ───────────────────────────────────────────────────────────
+    const hasNewerActiveProposal = (
+      vaultId: bigint,
+      category: `0x${string}`,
+      proposalId: bigint
+    ) =>
+      involvedProposals.some(
+        (p) =>
+          p.vaultId === vaultId &&
+          p.category === category &&
+          p.proposalId !== proposalId &&
+          (p.status === 'pending' || p.status === 'ready') &&
+          !p.executed
+      );
+
+    const vaultFinalized = (vaultId: bigint) =>
+      summaries.some((v) => v.vaultId === vaultId && v.finalized);
+
     // ── Admin — proposals awaiting approval ───────────────────────────────
     for (const p of adminProposals) {
       items.push({
@@ -52,6 +70,10 @@ export function useNotifications() {
         : 'executor' as const;
 
       if (p.status === 'rejected') {
+        if (
+          vaultFinalized(p.vaultId) ||
+          hasNewerActiveProposal(p.vaultId, p.category, p.proposalId)
+        ) continue;
         items.push({
           id: `proposal-rejected-${p.proposalId.toString()}`,
           type: 'proposal_rejected',
@@ -63,6 +85,10 @@ export function useNotifications() {
       }
 
       if (p.status === 'expired') {
+        if (
+          vaultFinalized(p.vaultId) ||
+          hasNewerActiveProposal(p.vaultId, p.category, p.proposalId)
+        ) continue;
         items.push({
           id: `proposal-expired-${p.proposalId.toString()}`,
           type: 'proposal_expired',
@@ -91,7 +117,6 @@ export function useNotifications() {
       if (v.finalized) continue;
 
       if (isCreatorOnly) {
-        // Creator only — prompt to mint directly
         items.push({
           id: `mint-direct-${v.vaultId.toString()}`,
           type: 'mint_direct',
@@ -99,11 +124,10 @@ export function useNotifications() {
           role: 'creator',
         });
       } else {
-        // Team vault — check if any active non-executed proposal exists
         const hasActiveProposal = involvedProposals.some(
           (p) =>
             p.vaultId === v.vaultId &&
-            (p.status === 'pending' || p.status === 'ready') &&
+            (p.status === 'pending' || p.status === 'ready' || p.status === 'rejected' || p.status === 'expired') &&
             !p.executed
         );
         if (!hasActiveProposal) {

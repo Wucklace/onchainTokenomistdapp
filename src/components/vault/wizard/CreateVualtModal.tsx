@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useBlockNumber } from 'wagmi';
-import { useRouter } from 'next/navigation';
+import { useRouter, usePathname } from 'next/navigation';
 import { isAddress, parseEther } from 'viem';
 import { Button, Modal } from '@/components/ui';
-import { TxStatus } from '@/components/transaction';
+import { TransactionModal } from '@/components/transaction';
 import { useCreateVault, useTokenApprove, useWallet } from '@/hooks';
 import { stringToBytes32, daysToBlocks, dateToBlock } from '@/utils/format';
 import { useWizardStore, selectCreateVaultPayload, useTxStore, useCreateModal, usePlatformStore } from '@/store';
@@ -25,11 +25,11 @@ const ZERO = '0x0000000000000000000000000000000000000000';
 
 // ─── Step Indicator ───────────────────────────────────────────────────────────
 
-function StepIndicator({ 
+function StepIndicator({
   currentStep,
   onClose,
   isBusy,
-}: { 
+}: {
   currentStep: number;
   onClose: () => void;
   isBusy: boolean;
@@ -93,28 +93,24 @@ function StepIndicator({
 
 export function CreateVaultModal() {
 
-  // ── Platform store — single source of truth for registrationFee ───────────
-  // Fetched once in PlatformProvider, event-driven refetch on FeeUpdateExecuted
-  // No useReadContract needed here
+  // ── Platform store ─────────────────────────────────────────────────────────
   const registrationFee = usePlatformStore((s) => s.registrationFee);
 
-  const { isOpen, close }       = useCreateModal();
-  const { data: currentBlock }  = useBlockNumber();
-  const { address }             = useWallet();
+  const { isOpen, close }      = useCreateModal();
+  const { data: currentBlock } = useBlockNumber();
+  const { address }            = useWallet();
 
-  const currentStep   = useWizardStore((s) => s.currentStep);
-  const nextStep      = useWizardStore((s) => s.nextStep);
-  const prevStep      = useWizardStore((s) => s.prevStep);
-  const submitting    = useWizardStore((s) => s.submitting);
-  const submitError   = useWizardStore((s) => s.submitError);
-  const setSubmitting = useWizardStore((s) => s.setSubmitting);
+  const currentStep    = useWizardStore((s) => s.currentStep);
+  const nextStep       = useWizardStore((s) => s.nextStep);
+  const prevStep       = useWizardStore((s) => s.prevStep);
+  const submitting     = useWizardStore((s) => s.submitting);
+  const submitError    = useWizardStore((s) => s.submitError);
+  const setSubmitting  = useWizardStore((s) => s.setSubmitting);
   const setSubmitError = useWizardStore((s) => s.setSubmitError);
-  const resetWizard   = useWizardStore((s) => s.reset);
+  const resetWizard    = useWizardStore((s) => s.reset);
 
-  // ── Native vault flag ─────────────────────────────────────────────────────
   const isNativeVault = useWizardStore((s) => s.step1.isNative);
 
-  // ── Token address — null for native (hook no-ops), address for ERC-20 ─────
   const wizardTokenAddress = useWizardStore((s) =>
     selectCreateVaultPayload(s).tokenAddress
   ) as `0x${string}` | null;
@@ -126,15 +122,12 @@ export function CreateVaultModal() {
 
   const { createVault } = useCreateVault();
 
-  // ── Token approval — skipped entirely for native vaults ──────────────────
   const { approveToken, needsApproval: erc20NeedsApproval } = useTokenApprove({
-    // null signals the hook to no-op — sentinel is not an ERC-20
     tokenAddress: isNativeVault ? null : wizardTokenAddress,
     owner: address,
     amount: isNativeVault ? 0n : parsedAmount,
   });
 
-  // Native vaults never need approval — approval is an ERC-20 concept only
   const needsApproval = !isNativeVault && erc20NeedsApproval;
 
   const {
@@ -145,17 +138,29 @@ export function CreateVaultModal() {
     reset: resetTx,
   } = useTxStore();
 
-  // ── Close handler ─────────────────────────────────────────────────────────
-  const handleClose = useCallback(() => {
-    if (submitting || isPending || isConfirming) return;
+  // ── Navigation state ───────────────────────────────────────────────────────
+  const [isNavigating, setIsNavigating] = useState(false);
+  const router   = useRouter();
+  const pathname = usePathname();
+
+  // When pathname changes, navigation is complete — clean up and close
+  useEffect(() => {
+    if (!isNavigating) return;
+    setIsNavigating(false);
     resetWizard();
     resetTx();
     close();
-  }, [submitting, isPending, isConfirming, resetWizard, resetTx, close]);
+  }, [pathname]);
 
-  const router = useRouter();
+  // ── Close handler ──────────────────────────────────────────────────────────
+  const handleClose = useCallback(() => {
+    if (submitting || isPending || isConfirming || isNavigating) return;
+    resetWizard();
+    resetTx();
+    close();
+  }, [submitting, isPending, isConfirming, isNavigating, resetWizard, resetTx, close]);
 
-  // ── Submit ────────────────────────────────────────────────────────────────
+  // ── Submit ─────────────────────────────────────────────────────────────────
   const handleSubmit = async () => {
     const valid = useWizardStore.getState().validateStep(3);
     if (!valid) return;
@@ -190,10 +195,10 @@ export function CreateVaultModal() {
             throw new Error(`Invalid max supply in "${cat.name} / ${tier.name}"`);
           }
           return {
-            category:         stringToBytes32(cat.name),
-            tier:             stringToBytes32(tier.name),
+            category:          stringToBytes32(cat.name),
+            tier:              stringToBytes32(tier.name),
             allocationPerPass: parseEther(tier.allocationPerPass),
-            maxSupply:        BigInt(supply),
+            maxSupply:         BigInt(supply),
           };
         })
       );
@@ -220,11 +225,11 @@ export function CreateVaultModal() {
       const admin2 = payload.approvalMode === 'Team'    ? payload.admin2 : ZERO;
 
       const input: CreateVaultInput = {
-        tokenAddress: payload.tokenAddress  as `0x${string}`,
+        tokenAddress: payload.tokenAddress as `0x${string}`,
         amount,
-        admin1: admin1 as `0x${string}`,
-        admin2: admin2 as `0x${string}`,
-        executor: payload.executor && isAddress(payload.executor)
+        admin1:    admin1    as `0x${string}`,
+        admin2:    admin2    as `0x${string}`,
+        executor:  payload.executor && isAddress(payload.executor)
           ? payload.executor as `0x${string}`
           : ZERO as `0x${string}`,
         startBlock,
@@ -232,8 +237,7 @@ export function CreateVaultModal() {
         vestingConfigs,
       };
 
-      // ── ERC-20 only: request approval before vault creation ──────────────
-      // Native vaults skip this — deposit arrives via msg.value, no approval needed
+      // ── ERC-20 only: request approval before vault creation ────────────────
       if (!payload.isNative && needsApproval) {
         const approved = await approveToken(
           payload.tokenAddress as `0x${string}`,
@@ -245,22 +249,20 @@ export function CreateVaultModal() {
         }
       }
 
-      // ── msg.value calculation ─────────────────────────────────────────────
-      // Native : registrationFee + depositAmount (both in one transaction)
-      // ERC-20 : registrationFee only (deposit pulled via transferFrom)
+      // ── msg.value ──────────────────────────────────────────────────────────
       const msgValue = payload.isNative
         ? (registrationFee ?? 0n) + amount
         : (registrationFee ?? 0n);
+
       const vaultId = await createVault(input, msgValue);
       if (!vaultId) {
         if (!useTxStore.getState().isError) return;
         throw new Error('Vault creation failed');
       }
-      
+
+      // ── Navigate — modal stays open with "Redirecting..." until route resolves
+      setIsNavigating(true);
       router.push(`/vaults/${vaultId.toString()}`);
-      await new Promise(resolve => setTimeout(resolve, 4000));
-      resetWizard();
-      resetTx();
 
     } catch (err) {
       setSubmitError(err instanceof Error ? err.message : 'Transaction failed');
@@ -269,7 +271,7 @@ export function CreateVaultModal() {
     }
   };
 
-  // ── Step content ──────────────────────────────────────────────────────────
+  // ── Step content ───────────────────────────────────────────────────────────
   const stepContent = [
     <Step1TokenInfo     key="step1" />,
     <Step2Categories    key="step2" />,
@@ -278,85 +280,81 @@ export function CreateVaultModal() {
   ];
 
   const isLastStep = currentStep === STEPS.length - 1;
-  const isBusy     = submitting || isPending || isConfirming;
+  const isBusy     = submitting || isPending || isConfirming || isNavigating;
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={handleClose}
-      size="lg"
-      closeOnOverlay={false}
-    >
-      {/* Step indicator — pinned, never scrolls */}
-      <StepIndicator
-        currentStep={currentStep}
+    <>
+      <Modal
+        isOpen={isOpen}
         onClose={handleClose}
-        isBusy={isBusy}
-      />
+        size="lg"
+        closeOnOverlay={false}
+      >
+        {/* Step indicator — pinned, never scrolls */}
+        <StepIndicator
+          currentStep={currentStep}
+          onClose={handleClose}
+          isBusy={isBusy}
+        />
 
-      {/* Scrollable content */}
-      <div className="p-4 flex flex-col gap-4">
-        {stepContent[currentStep]}
+        {/* Scrollable content */}
+        <div className="p-4 flex flex-col gap-4">
+          {stepContent[currentStep]}
+          {submitError && (
+            <p className="text-xs font-mono text-red-400 tracking-wide">
+              ⚠ {submitError}
+            </p>
+          )}
+        </div>
 
-        {isLastStep && (isPending || isConfirming || isConfirmed || isError) && (
-          <TxStatus
-            hash={useTxStore.getState().hash}
-            isPending={isPending}
-            isConfirming={isConfirming}
-            isConfirmed={isConfirmed}
-            isError={isError}
-            error={useTxStore.getState().error}
-          />
-        )}
-
-        {submitError && (
-          <p className="text-xs font-mono text-red-400 tracking-wide">
-            ⚠ {submitError}
-          </p>
-        )}
-      </div>
-
-      {/* Footer — pinned, never scrolls */}
-      <div className="flex-shrink-0 flex items-center justify-between px-4 py-2">
-        {currentStep === 0 ? (
-          <Button variant="ghost" onClick={handleClose} disabled={isBusy}>
-            Cancel
-          </Button>
-        ) : (
-          <Button variant="ghost" onClick={prevStep} disabled={isBusy}>
-            Back
-          </Button>
-        )}
-
-        {isLastStep ? (
-          isConfirmed ? (
-            <Button variant="ghost" onClick={handleClose}>
-              Done ✓
+        {/* Footer — pinned, never scrolls */}
+        <div className="flex-shrink-0 flex items-center justify-between px-4 py-2">
+          {currentStep === 0 ? (
+            <Button variant="ghost" onClick={handleClose} disabled={isBusy}>
+              Cancel
             </Button>
           ) : (
-            <Button
-              variant="secondary"
-              onClick={handleSubmit}
-              isLoading={isBusy}
-              disabled={isBusy}
-            >
-              {isPending
-                ? 'Awaiting Signature...'
-                : isConfirming
-                ? 'Confirming...'
-                : submitting
-                ? 'Processing...'
-                : needsApproval
-                ? 'Approve & Create 🚀'
-                : 'Create Vault 🚀'}
+            <Button variant="ghost" onClick={prevStep} disabled={isBusy}>
+              Back
             </Button>
-          )
-        ) : (
-          <Button variant="primary" onClick={nextStep} disabled={isBusy}>
-            Next: {STEPS[currentStep + 1]}
-          </Button>
-        )}
-      </div>
-    </Modal>
+          )}
+
+          {isLastStep ? (
+            isConfirmed ? (
+              <Button variant="ghost" onClick={handleClose} disabled={isNavigating}>
+                {isNavigating ? 'Redirecting...' : 'Done ✓'}
+              </Button>
+            ) : (
+              <Button
+                variant="secondary"
+                onClick={handleSubmit}
+                isLoading={isBusy}
+                disabled={isBusy}
+              >
+                {isPending
+                  ? 'Awaiting Signature...'
+                  : isConfirming
+                  ? 'Confirming...'
+                  : submitting
+                  ? 'Processing...'
+                  : needsApproval
+                  ? 'Approve & Create 🚀'
+                  : 'Create Vault 🚀'}
+              </Button>
+            )
+          ) : (
+            <Button variant="primary" onClick={nextStep} disabled={isBusy}>
+              Next: {STEPS[currentStep + 1]}
+            </Button>
+          )}
+        </div>
+      </Modal>
+
+      <TransactionModal
+        isOpen={isPending || isConfirming || isConfirmed || isError}
+        onClose={handleClose}
+        isNavigating={isNavigating}
+      />
+    </>
   );
 }

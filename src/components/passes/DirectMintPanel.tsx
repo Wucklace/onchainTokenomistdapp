@@ -87,6 +87,7 @@ export function DirectMintPanel({
     refetch();
     setRaw('');
     reset();
+    setDone(true);
   };
 
   return (
