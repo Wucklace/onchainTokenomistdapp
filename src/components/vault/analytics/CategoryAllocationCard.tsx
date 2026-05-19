@@ -12,15 +12,25 @@ export function CategoryAllocationCard({
   vaultId: bigint;
   allocation: CategoryAllocation;
 }) {
-  const mintedPct =
-    allocation.totalMinted > 0n && allocation.totalAllocation > 0n
-      ? Number((allocation.totalMinted * 10000n) / BigInt(allocation.tierCount === 0n ? 1 : 1)) 
+  // Token claim progress: how much of the total allocation has been claimed
+  const claimPct =
+    allocation.totalAllocation > 0n
+      ? Number((allocation.totalClaimed * 100n) / allocation.totalAllocation)
       : 0;
 
-  const progressPct =
-    allocation.remainingPasses + allocation.totalMinted > 0n
-      ? Number((allocation.totalMinted * 100n) / (allocation.totalMinted + allocation.remainingPasses))
+  // Pass minting progress: how many passes have been minted out of total supply
+  const totalPassSupply = allocation.totalMinted + allocation.remainingPasses;
+  const mintPct =
+    totalPassSupply > 0n
+      ? Number((allocation.totalMinted * 100n) / totalPassSupply)
       : 0;
+
+  // When vesting is enabled, the more meaningful progress is token claiming.
+  // When no vesting, pass minting == token distribution, so either works.
+  const progressPct = allocation.vestingEnabled ? claimPct : mintPct;
+  const progressLabel = allocation.vestingEnabled
+    ? `${claimPct}% claimed`
+    : `${mintPct}% distributed`;
 
   return (
     <div className="bg-white/3 border border-white/5 rounded-sm p-4 flex flex-col gap-4">
@@ -64,13 +74,13 @@ export function CategoryAllocationCard({
           <p className="text-sm font-mono text-[#fa7e09cb]">
             {allocation.totalMinted.toString()}
             <span className="text-white/25 text-xs">
-              {' '}/ {(allocation.totalMinted + allocation.remainingPasses).toString()}
+              {' '}/ {totalPassSupply.toString()}
             </span>
           </p>
         </div>
       </div>
 
-      {/* Progress Bar */}
+      {/* Progress Bar — tracks token claiming when vesting, pass minting otherwise */}
       <div className="flex flex-col gap-1">
         <div className="h-1 bg-white/5 rounded-full overflow-hidden">
           <div
@@ -79,7 +89,7 @@ export function CategoryAllocationCard({
           />
         </div>
         <p className="text-[10px] font-mono text-white/25">
-          {progressPct}% distributed
+          {progressLabel}
         </p>
       </div>
 
